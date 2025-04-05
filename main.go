@@ -1,105 +1,63 @@
 package main
 
 import (
+	"context"
 	"fmt"
-<<<<<<< HEAD
 	"log/slog"
-=======
-	"log"
->>>>>>> origin/main
 	"net/http"
 	"os"
-
 	"samurai_api/db"
 	"samurai_api/handlers"
 	"samurai_api/repository"
 	"samurai_api/service"
 )
 
-<<<<<<< HEAD
-func loadBanner() {
-	bannerPath := "internal/banner/ascii.txt"
-	data, err := os.ReadFile(bannerPath)
-	if err != nil {
-		slog.Warn("failed to load banner", "error", err)
-		return
+const port = 1600
+
+func printBanner() {
+	banner, err := os.ReadFile("internal/banner/ascii.txt")
+	if err == nil {
+		fmt.Print(string(banner))
 	}
-	fmt.Println(string(data))
 }
 
 func main() {
-	// Logger
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	slog.SetDefault(logger)
+	printBanner()
 
-	// Banner
-	loadBanner()
+	ctx := context.Background()
 
-	// Mongo URI
-	uri := os.Getenv("MONGO_URI")
-	if uri == "" {
-		uri = "mongodb://localhost:27017"
-		slog.Warn("MONGO_URI not set, defaulting to localhost")
+	mongoURI := os.Getenv("MONGO_URI")
+	if mongoURI == "" {
+		mongoURI = "mongodb://localhost:27017"
+		slog.Info("Using default Mongo URI", "uri", mongoURI)
 	} else {
-		slog.Info("Using Mongo URI from environment", "uri", uri)
+		slog.Info("Using Mongo URI from environment", "uri", mongoURI)
 	}
 
-	// MongoDB client
-	client, err := db.ConnectMongo(uri)
+	client, err := db.ConnectMongo(ctx, mongoURI)
 	if err != nil {
-		slog.Error("Failed to connect to MongoDB", "error", err)
+		slog.Error("failed to connect to Mongo", "error", err)
 		os.Exit(1)
 	}
 
-	// Samurai Layers
+	// Layered Architecture
 	samuraiRepo := repository.NewSamuraiRepository(client)
 	samuraiService := service.NewSamuraiService(samuraiRepo)
 	samuraiHandler := handlers.SamuraiHandler(samuraiService)
 
-	// Clan Layers
 	clanRepo := repository.NewClanRepository(client)
 	clanService := service.NewClanService(clanRepo)
 	clanHandler := handlers.ClanHandler(clanService)
 
-	// Routes
+	// Router setup
 	mux := http.NewServeMux()
-	mux.HandleFunc("/samurais", samuraiHandler)
-	mux.HandleFunc("/clans", clanHandler)
+	mux.Handle("/samurais", samuraiHandler)
+	mux.Handle("/clans", clanHandler)
 
+	addr := fmt.Sprintf(":%d", port)
 	slog.Info("Samurai API is running on port 1600 ⚔️")
-	err = http.ListenAndServe(":1600", mux)
+	err = http.ListenAndServe(addr, mux)
 	if err != nil {
-		slog.Error("Server failed", "error", err)
-		os.Exit(1)
+		slog.Error("server failed", "error", err)
 	}
-=======
-func main() {
-	// 🥷 Show banner
-	data, err := os.ReadFile("internal/banner/ascii.txt")
-	if err != nil {
-		fmt.Println("Samurai API - 義は我が道")
-	} else {
-		fmt.Println(string(data))
-	}
-
-	// MongoDB connection
-	client, err := db.ConnectMongoDB()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Clan setup
-	clanRepo := repository.NewClanRepository(client)
-	clanService := service.NewClanService(clanRepo)
-	http.HandleFunc("/clans", handlers.ClanHandler(clanService))
-
-	// Samurai setup
-	samuraiRepo := repository.NewSamuraiRepository(client)
-	samuraiService := service.NewSamuraiService(samuraiRepo)
-	http.HandleFunc("/samurais", handlers.SamuraiHandler(samuraiService))
-
-	// Start server
-	log.Println("⚔️ Listening on http://localhost:1600")
-	http.ListenAndServe(":1600", nil)
->>>>>>> origin/main
 }
