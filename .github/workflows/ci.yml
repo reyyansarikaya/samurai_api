@@ -7,7 +7,11 @@ on:
     branches: [main]
 
 jobs:
+<<<<<<< HEAD
   test-and-build:
+=======
+  test:
+>>>>>>> origin/main
     runs-on: ubuntu-latest
 
     steps:
@@ -22,6 +26,7 @@ jobs:
       - name: Install dependencies
         run: go mod tidy
 
+<<<<<<< HEAD
       - name: Build project
         run: go build -o samurai_api main.go
 
@@ -41,3 +46,7 @@ jobs:
           push: false
           tags: samurai-api:ci
           platforms: linux/amd64,linux/arm64
+=======
+      - name: Run tests (unit + integration)
+        run: go test ./... -v
+>>>>>>> origin/main

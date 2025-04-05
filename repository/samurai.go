@@ -10,7 +10,10 @@ import (
 type SamuraiRepository interface {
 	Create(ctx context.Context, samurai models.Samurai) error
 	GetAll(ctx context.Context) ([]models.Samurai, error)
+<<<<<<< HEAD
 	FindByName(ctx context.Context, name string) (*models.Samurai, error)
+=======
+>>>>>>> origin/main
 }
 
 type samuraiRepository struct {
@@ -41,6 +44,7 @@ func (r *samuraiRepository) GetAll(ctx context.Context) ([]models.Samurai, error
 	}
 	return samurais, nil
 }
+<<<<<<< HEAD
 
 func (r *samuraiRepository) FindByName(ctx context.Context, name string) (*models.Samurai, error) {
 	var samurai models.Samurai
@@ -53,3 +57,5 @@ func (r *samuraiRepository) FindByName(ctx context.Context, name string) (*model
 	}
 	return &samurai, nil
 }
+=======
+>>>>>>> origin/main

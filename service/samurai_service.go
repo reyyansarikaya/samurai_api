@@ -2,8 +2,11 @@ package service
 
 import (
 	"context"
+<<<<<<< HEAD
 	"errors"
 	"log/slog"
+=======
+>>>>>>> origin/main
 	"samurai_api/models"
 	"samurai_api/repository"
 )
@@ -22,6 +25,7 @@ func NewSamuraiService(repo repository.SamuraiRepository) SamuraiService {
 }
 
 func (s *samuraiService) CreateSamurai(ctx context.Context, samurai models.Samurai) error {
+<<<<<<< HEAD
 	if samurai.Name == "" {
 		slog.Warn("Samurai name is required")
 		return errors.New("samurai name is required")
@@ -42,6 +46,8 @@ func (s *samuraiService) CreateSamurai(ctx context.Context, samurai models.Samur
 	}
 
 	slog.Info("Creating samurai", "name", samurai.Name)
+=======
+>>>>>>> origin/main
 	return s.repo.Create(ctx, samurai)
 }
 
