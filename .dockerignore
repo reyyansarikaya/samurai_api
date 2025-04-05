@@ -1,0 +1,31 @@
+# Go output binaries
+*.exe
+*.test
+*.out
+
+# Go workspace
+go.work
+go.work.sum
+
+# IDE/editor junk
+.vscode/
+.idea/
+*.swp
+
+# MacOS metadata
+.DS_Store
+
+# Git
+.git
+.gitignore
+
+# Local environment variables
+.env
+
+# Coverage files
+coverage.*
+
+node_modules/
+
+# Docker cache
+docker-compose.override.yml
