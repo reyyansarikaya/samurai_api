@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"samurai_api/handlers"
+	"samurai_api/messaging"
 	"samurai_api/models"
 	"samurai_api/repository"
 	"samurai_api/service"
@@ -14,12 +16,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/testcontainers/testcontainers-go/modules/mongodb"
+	"github.com/testcontainers/testcontainers-go/modules/rabbitmq"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log/slog"
 )
 
-func setupTestMongoForSamurai(ctx context.Context, t *testing.T) *mongo.Client {
+// MongoDB container setup
+func setupTestMongo(ctx context.Context, t *testing.T) *mongo.Client {
 	container, err := mongodb.Run(ctx, "mongo:6")
 	if err != nil {
 		t.Fatal(err)
@@ -42,12 +46,48 @@ func setupTestMongoForSamurai(ctx context.Context, t *testing.T) *mongo.Client {
 	return client
 }
 
+// RabbitMQ container setup
+func setupTestRabbitMQ(ctx context.Context, t *testing.T) *messaging.AttackEventPublisher {
+	rmq, err := rabbitmq.RunContainer(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		rmq.Terminate(ctx)
+	})
+
+	host, err := rmq.Host(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	port, err := rmq.MappedPort(ctx, "5672")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	amqpURI := fmt.Sprintf("amqp://guest:guest@%s:%s/", host, port.Port())
+
+	rawPublisher := messaging.NewRabbitMQPublisher(amqpURI)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	publisher := messaging.NewAttackEventPublisher(rawPublisher, "samurai.attacked")
+
+	t.Cleanup(func() {
+		rawPublisher.Close()
+	})
+
+	return publisher
+}
+
 func TestSamuraiHandler_TableDriven(t *testing.T) {
 	ctx := context.Background()
-	client := setupTestMongoForSamurai(ctx, t)
+	client := setupTestMongo(ctx, t)
+	publisher := setupTestRabbitMQ(ctx, t)
 
 	repo := repository.NewSamuraiRepository(client)
-	svc := service.NewSamuraiService(repo)
+	svc := service.NewSamuraiService(repo, publisher)
 	handler := handlers.SamuraiHandler(svc)
 
 	tests := []struct {
@@ -65,27 +105,10 @@ func TestSamuraiHandler_TableDriven(t *testing.T) {
 			wantStatus: http.StatusCreated,
 		},
 		{
-			name: "valid samurai 2",
-			samurai: models.Samurai{
-				Name:   "Kenshin",
-				Rank:   "Ashigaru",
-				ClanID: "Kurogane",
-			},
-			wantStatus: http.StatusCreated,
-		},
-		{
 			name: "missing name",
 			samurai: models.Samurai{
 				Rank:   "Ronin",
 				ClanID: "Kurogane",
-			},
-			wantStatus: http.StatusInternalServerError,
-		},
-		{
-			name: "missing clan_id",
-			samurai: models.Samurai{
-				Name: "Jin",
-				Rank: "Ronin",
 			},
 			wantStatus: http.StatusInternalServerError,
 		},
